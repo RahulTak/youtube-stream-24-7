@@ -1,0 +1,3 @@
+<?php declare(strict_types=1);
+namespace App\Services;
+final class LogService { public function write(string $level,string $message,array $context=[]):void { $line=json_encode(['time'=>gmdate('c'),'level'=>$level,'message'=>$message,'context'=>$context],JSON_UNESCAPED_SLASHES).PHP_EOL; $file=rtrim(config('settings.log_directory'),'/').'/app-'.gmdate('Y-m-d').'.log'; if(!is_dir(dirname($file)))mkdir(dirname($file),0750,true); file_put_contents($file,$line,FILE_APPEND|LOCK_EX); } public function info(string $m,array $c=[]):void{$this->write('info',$m,$c);} public function error(string $m,array $c=[]):void{$this->write('error',$m,$c);} }

@@ -1,0 +1,14 @@
+[Unit]
+Description=YouTube Broadcaster worker
+After=network.target mysql.service
+
+[Service]
+Type=oneshot
+User=www-data
+WorkingDirectory=/var/www/youtube-broadcaster
+ExecStart=/usr/bin/php /var/www/youtube-broadcaster/bin/stream-worker
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ReadWritePaths=/var/www/youtube-broadcaster/uploads /var/www/youtube-broadcaster/logs
+

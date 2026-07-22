@@ -1,0 +1,4 @@
+#!/usr/bin/env php
+<?php declare(strict_types=1);
+require dirname(__DIR__).'/vendor/autoload.php';require dirname(__DIR__).'/app/Helpers/functions.php';
+if($argc!==3){fwrite(STDERR,"Usage: bin/create-admin email password\n");exit(1);} $service=(new App\Infrastructure\Container)->get(App\Services\AuthService::class);if(!$service->bootstrap($argv[1],$argv[2])){fwrite(STDERR,"An admin already exists.\n");exit(1);} echo "Admin created.\n";

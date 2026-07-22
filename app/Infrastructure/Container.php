@@ -1,0 +1,3 @@
+<?php declare(strict_types=1);
+namespace App\Infrastructure;
+final class Container { private array $instances=[]; public function get(string $class): object { return $this->instances[$class] ??= $this->make($class); } private function make(string $class): object { $reflection=new \ReflectionClass($class); $args=[]; foreach($reflection->getConstructor()?->getParameters()??[] as $p) { $type=$p->getType(); if(!$type instanceof \ReflectionNamedType || $type->isBuiltin()) throw new \RuntimeException("Cannot resolve {$class}"); $args[]=$this->get($type->getName()); } return $reflection->newInstanceArgs($args); } }

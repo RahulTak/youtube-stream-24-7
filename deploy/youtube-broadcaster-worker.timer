@@ -1,0 +1,10 @@
+[Unit]
+Description=Run YouTube Broadcaster worker continuously
+
+[Timer]
+OnBootSec=10
+OnUnitInactiveSec=5
+Unit=youtube-broadcaster-worker.service
+
+[Install]
+WantedBy=timers.target

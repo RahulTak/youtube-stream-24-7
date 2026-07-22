@@ -1,0 +1,4 @@
+<?php declare(strict_types=1);
+namespace App\Http;
+use App\Infrastructure\Container;
+final class Router { private array $routes=[]; public function __construct(private Container $container){} public function add(string $method,string $path,array $action,bool $auth=true):void{$this->routes[$method.$path]=[$action,$auth];} public function dispatch():void{$path=parse_url($_SERVER['REQUEST_URI'],PHP_URL_PATH)?:'/';$key=$_SERVER['REQUEST_METHOD'].$path;if(!isset($this->routes[$key])){http_response_code(404);echo 'Not found';return;}[$action,$auth]=$this->routes[$key];if($auth&&!isset($_SESSION['user_id']))redirect('/login');if($_SERVER['REQUEST_METHOD']==='POST'&&!hash_equals($_SESSION['csrf']??'',$_POST['_csrf']??'')){http_response_code(419);echo 'Invalid request token.';return;}[$class,$method]=$action;$this->container->get($class)->$method();} }

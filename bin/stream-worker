@@ -1,0 +1,4 @@
+#!/usr/bin/env php
+<?php declare(strict_types=1);
+require dirname(__DIR__).'/vendor/autoload.php';require dirname(__DIR__).'/app/Helpers/functions.php';
+$container=new App\Infrastructure\Container;$manager=$container->get(App\Streaming\StreamManager::class);$manager->runPending();

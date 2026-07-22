@@ -1,0 +1,4 @@
+<?php declare(strict_types=1);
+namespace App\Services;
+use App\Repositories\UserRepository;
+final class AuthService { public function __construct(private UserRepository $users,private LogService $log){} public function login(string $email,string $password):bool{$u=$this->users->findByEmail($email);if(!$u||!password_verify($password,$u['password_hash'])){$this->log->error('Failed login',['email'=>$email]);return false;}session_regenerate_id(true);$_SESSION['user_id']=$u['id'];return true;} public function logout():void{$_SESSION=[];session_destroy();} public function check():bool{return isset($_SESSION['user_id']);} public function bootstrap(string $email,string $password):bool{if($this->users->count()>0)return false;$this->users->create($email,password_hash($password,PASSWORD_DEFAULT));return true;} }

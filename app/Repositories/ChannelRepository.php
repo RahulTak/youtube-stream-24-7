@@ -1,0 +1,3 @@
+<?php declare(strict_types=1);
+namespace App\Repositories;
+final class ChannelRepository extends AbstractRepository { public function all(): array{return $this->pdo()->query('SELECT id,name,description,rtmp_url,status,created_at FROM channels ORDER BY created_at DESC')->fetchAll();} public function find(int $id): ?array{$s=$this->pdo()->prepare('SELECT * FROM channels WHERE id=?');$s->execute([$id]);return $s->fetch()?:null;} public function create(array $d): void{$s=$this->pdo()->prepare('INSERT INTO channels(name,description,rtmp_url,stream_key)VALUES(?,?,?,?)');$s->execute([$d['name'],$d['description'],$d['rtmp_url'],$d['stream_key']]);} }
