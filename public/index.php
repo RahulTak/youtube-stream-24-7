@@ -9,7 +9,7 @@ session_name(config('app.session_name'));
 session_set_cookie_params(['httponly'=>true,'secure'=>(($_SERVER['HTTPS']??'')==='on'),'samesite'=>'Lax']);
 session_start();
 $_SESSION['csrf'] ??= bin2hex(random_bytes(32));
-set_exception_handler(function(Throwable $e): void { error_log((string)$e); http_response_code(500); echo config('app.debug')?e($e->getMessage()):'An unexpected error occurred.'; });
+set_exception_handler(function(Throwable $e): void { error_log((string)$e); if (PHP_SAPI !== 'cli' && !headers_sent() && !str_starts_with($_SERVER['REQUEST_URI'] ?? '', '/api/')) { flash('danger',config('app.debug')?$e->getMessage():'We could not complete that action.'); redirect($_SERVER['HTTP_REFERER'] ?? '/'); } http_response_code(500); echo config('app.debug')?e($e->getMessage()):'An unexpected error occurred.'; });
 $container=new Container();$router=new Router($container);
 $router->add('GET','/login',[AuthController::class,'login'],false);
 $router->add('POST','/login',[AuthController::class,'authenticate'],false);

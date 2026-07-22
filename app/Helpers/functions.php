@@ -4,3 +4,5 @@ function config(string $key, mixed $default=null): mixed { static $configs=[]; [
 function e(?string $value): string { return htmlspecialchars($value ?? '', ENT_QUOTES|ENT_SUBSTITUTE, 'UTF-8'); }
 function redirect(string $path): never { header('Location: '.$path, true, 302); exit; }
 function view(string $template,array $data=[]): never { extract($data,EXTR_SKIP);require dirname(__DIR__,2).'/views/'.$template.'.php';exit; }
+function flash(string $type,string $message): void { $_SESSION['flash'][]=['type'=>$type,'message'=>$message]; }
+function consume_flashes(): array { $messages=$_SESSION['flash']??[];unset($_SESSION['flash']);return $messages; }
