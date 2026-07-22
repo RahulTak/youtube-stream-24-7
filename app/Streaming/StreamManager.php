@@ -13,7 +13,8 @@ final class StreamManager
     public function runPending(): void
     {
         $stream = $this->streams->active();
-        if (!$stream || $stream['status'] !== StreamStatus::STARTING || ($stream['scheduled_start'] && strtotime($stream['scheduled_start']) > time())) return;
+        if (!$stream || ($stream['scheduled_start'] && strtotime($stream['scheduled_start']) > time())) return;
+        if ($stream['status'] === StreamStatus::RUNNING && $this->processExists((int)($stream['pid'] ?? 0))) return;
         $this->run($stream);
     }
 
@@ -28,6 +29,7 @@ final class StreamManager
         $attempt = 0;
         do {
             $this->streams->update((int) $stream['id'], ['status' => $attempt ? StreamStatus::RESTARTING : StreamStatus::RUNNING, 'started_at' => gmdate('Y-m-d H:i:s'), 'restart_count' => $attempt]);
+            $this->channels->setStatus((int)$stream['channel_id'], StreamStatus::RUNNING);
             $process = proc_open($command, [0 => ['pipe', 'r'], 1 => ['file', $logFile, 'a'], 2 => ['file', $logFile, 'a']], $pipes);
             if (!is_resource($process)) throw new \RuntimeException('Could not start FFmpeg.');
             if (isset($pipes[0]) && is_resource($pipes[0])) fclose($pipes[0]);
@@ -46,6 +48,7 @@ final class StreamManager
             $exitCode = proc_close($process);
             if ($stopped) {
                 $this->streams->update((int) $stream['id'], ['status' => StreamStatus::STOPPED, 'stopped_at' => gmdate('Y-m-d H:i:s'), 'pid' => null]);
+                $this->channels->setStatus((int)$stream['channel_id'], StreamStatus::STOPPED);
                 break;
             }
             if (($this->streams->find((int)$stream['id'])['restart_requested'] ?? false)) {
@@ -57,6 +60,7 @@ final class StreamManager
             $this->log->error('FFmpeg exited', ['stream_id' => $stream['id'], 'code' => $exitCode, 'attempt' => $attempt]);
             if (($this->settings->all()['auto_restart'] ?? '1') !== '1' || $attempt > (int) config('stream.max_restarts')) {
                 $this->streams->update((int) $stream['id'], ['status' => StreamStatus::FAILED, 'pid' => null]);
+                $this->channels->setStatus((int)$stream['channel_id'], StreamStatus::FAILED);
                 break;
             }
             sleep((int) config('stream.restart_delay_seconds'));
@@ -69,4 +73,6 @@ final class StreamManager
         $settings=$this->settings->all();
         return escapeshellarg($settings['ffmpeg_path']).' -hide_banner -loglevel '.escapeshellarg(config('ffmpeg.loglevel')).' -re -stream_loop -1 -f concat -safe 0 -i '.escapeshellarg($playlistFile).' -c:v libx264 -preset '.escapeshellarg(config('ffmpeg.preset')).' -b:v '.escapeshellarg($settings['default_bitrate']).' -c:a aac -b:a '.escapeshellarg(config('ffmpeg.audio_bitrate')).' -f flv '.escapeshellarg($channel['rtmp_url'].'/'.$channel['stream_key']);
     }
+
+    private function processExists(int $pid): bool { return $pid > 0 && is_dir('/proc/'.$pid); }
 }
