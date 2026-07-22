@@ -1,0 +1,8 @@
+[Unit]
+Description=Run YouTube Broadcaster import worker
+[Timer]
+OnBootSec=30
+OnUnitInactiveSec=10
+Unit=youtube-broadcaster-import.service
+[Install]
+WantedBy=timers.target

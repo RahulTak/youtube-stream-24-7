@@ -1,13 +1,10 @@
 <?php declare(strict_types=1);
 namespace App\Services;
+use App\Constants\VideoStatus;
+use App\Repositories\{ImportJobRepository,VideoRepository};
 final class ImportService {
-    public function __construct(private LogService $log) {}
-    public function queue(string $url): void {
-        $host = parse_url($url, PHP_URL_HOST);
-        if (!$host || !in_array(strtolower($host), config('youtube.allowed_hosts'), true)) throw new \InvalidArgumentException('Only YouTube URLs are allowed.');
-        $dir = config('settings.upload_directory');
-        $command = escapeshellarg(config('youtube.ytdlp_path')).' --no-playlist --write-thumbnail --output '.escapeshellarg($dir.'/%(id)s.%(ext)s').' '.escapeshellarg($url);
-        $this->log->info('YouTube import queued', ['url' => $url]);
-        exec($command.' > /dev/null 2>&1 &');
-    }
+    public function __construct(private ImportJobRepository $jobs, private VideoRepository $videos, private SettingsService $settings, private LogService $log) {}
+    public function queue(string $url): int { $host=strtolower((string)parse_url($url,PHP_URL_HOST));if(!$host||!in_array($host,config('youtube.allowed_hosts'),true))throw new \InvalidArgumentException('Enter a valid YouTube URL.');$id=$this->jobs->create($url);$this->log->info('YouTube import queued',['job_id'=>$id]);return $id; }
+    public function recent(): array { return $this->jobs->recent(); }
+    public function processOne(): bool { $job=$this->jobs->next();if(!$job)return false;try { $directory=config('settings.upload_directory');if(!is_dir($directory))mkdir($directory,0750,true);$template=$directory.'/%(id)s.%(ext)s';$command=escapeshellarg($this->settings->all()['ytdlp_path']).' --no-playlist --write-thumbnail --print-json --output '.escapeshellarg($template).' '.escapeshellarg($job['source_url']);$result=proc_open($command,[1=>['pipe','w'],2=>['pipe','w']],$pipes);if(!is_resource($result))throw new \RuntimeException('Unable to launch yt-dlp.');$output=stream_get_contents($pipes[1]);$error=stream_get_contents($pipes[2]);$exit=proc_close($result);if($exit!==0)throw new \RuntimeException($error?:'yt-dlp exited with an error.');$metadata=json_decode(trim($output),true,512,JSON_THROW_ON_ERROR);$filename=basename((string)($metadata['_filename']??''));if($filename===''||!is_file($directory.'/'.$filename))throw new \RuntimeException('yt-dlp did not produce a video file.');$mime=(new \finfo(FILEINFO_MIME_TYPE))->file($directory.'/'.$filename)?:'video/mp4';$videoId=$this->videos->create(['title'=>(string)($metadata['title']??$filename),'filename'=>$filename,'original_filename'=>$filename,'mime_type'=>$mime,'size_bytes'=>(int)filesize($directory.'/'.$filename),'duration_seconds'=>(int)($metadata['duration']??0),'status'=>VideoStatus::READY]);$this->jobs->complete((int)$job['id'],$videoId);$this->log->info('YouTube import completed',['job_id'=>$job['id'],'video_id'=>$videoId]);return true; }catch(\Throwable $e){$this->jobs->fail((int)$job['id'],$e->getMessage());$this->log->error('YouTube import failed',['job_id'=>$job['id'],'error'=>$e->getMessage()]);return false;} }
 }

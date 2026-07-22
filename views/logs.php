@@ -1,0 +1,1 @@
+<?php $title='Logs';require __DIR__.'/partials/header.php';?><h1 class="h4 mb-3">Application logs</h1><div class="card"><div class="card-body p-0"><pre class="m-0 p-3 bg-dark text-light overflow-auto" style="max-height:70vh"><?php foreach($entries as $entry):?><?=e($entry)."\n"?><?php endforeach?></pre></div></div><?php require __DIR__.'/partials/footer.php'; ?>

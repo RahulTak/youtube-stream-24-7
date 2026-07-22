@@ -3,3 +3,4 @@ function env(string $key, ?string $default=null): ?string { static $values=null;
 function config(string $key, mixed $default=null): mixed { static $configs=[]; [$file,$path]=array_pad(explode('.', $key, 2),2,null); if(!isset($configs[$file])) $configs[$file]=require dirname(__DIR__,2)."/config/$file.php"; $value=$configs[$file]; foreach(explode('.', $path??'') as $segment) { if($segment==='' ) continue; if(!is_array($value)||!array_key_exists($segment,$value)) return $default; $value=$value[$segment]; } return $value; }
 function e(?string $value): string { return htmlspecialchars($value ?? '', ENT_QUOTES|ENT_SUBSTITUTE, 'UTF-8'); }
 function redirect(string $path): never { header('Location: '.$path, true, 302); exit; }
+function view(string $template,array $data=[]): never { extract($data,EXTR_SKIP);require dirname(__DIR__,2).'/views/'.$template.'.php';exit; }

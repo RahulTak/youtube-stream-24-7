@@ -4,10 +4,11 @@ namespace App\Streaming;
 use App\Constants\StreamStatus;
 use App\Repositories\{ChannelRepository, PlaylistRepository, StreamRepository};
 use App\Services\LogService;
+use App\Services\SettingsService;
 
 final class StreamManager
 {
-    public function __construct(private StreamRepository $streams, private ChannelRepository $channels, private PlaylistRepository $playlists, private LogService $log) {}
+    public function __construct(private StreamRepository $streams, private ChannelRepository $channels, private PlaylistRepository $playlists, private SettingsService $settings, private LogService $log) {}
 
     public function runPending(): void
     {
@@ -29,6 +30,9 @@ final class StreamManager
             $this->streams->update((int) $stream['id'], ['status' => $attempt ? StreamStatus::RESTARTING : StreamStatus::RUNNING, 'started_at' => gmdate('Y-m-d H:i:s'), 'restart_count' => $attempt]);
             $process = proc_open($command, [0 => ['pipe', 'r'], 1 => ['file', $logFile, 'a'], 2 => ['file', $logFile, 'a']], $pipes);
             if (!is_resource($process)) throw new \RuntimeException('Could not start FFmpeg.');
+            if (isset($pipes[0]) && is_resource($pipes[0])) fclose($pipes[0]);
+            $processState=proc_get_status($process);
+            $this->streams->update((int)$stream['id'], ['pid'=>(int)$processState['pid']]);
             $stopped = false;
             while (proc_get_status($process)['running']) {
                 sleep((int) config('stream.poll_seconds'));
@@ -46,7 +50,7 @@ final class StreamManager
             }
             $attempt++;
             $this->log->error('FFmpeg exited', ['stream_id' => $stream['id'], 'code' => $exitCode, 'attempt' => $attempt]);
-            if (!config('stream.auto_restart') || $attempt > (int) config('stream.max_restarts')) {
+            if (($this->settings->all()['auto_restart'] ?? '1') !== '1' || $attempt > (int) config('stream.max_restarts')) {
                 $this->streams->update((int) $stream['id'], ['status' => StreamStatus::FAILED, 'pid' => null]);
                 break;
             }
@@ -57,6 +61,7 @@ final class StreamManager
 
     private function command(array $channel, string $playlistFile): string
     {
-        return escapeshellarg(config('ffmpeg.path')).' -hide_banner -loglevel '.escapeshellarg(config('ffmpeg.loglevel')).' -re -stream_loop -1 -f concat -safe 0 -i '.escapeshellarg($playlistFile).' -c:v libx264 -preset '.escapeshellarg(config('ffmpeg.preset')).' -b:v '.escapeshellarg(config('stream.default_bitrate')).' -c:a aac -b:a '.escapeshellarg(config('ffmpeg.audio_bitrate')).' -f flv '.escapeshellarg($channel['rtmp_url'].'/'.$channel['stream_key']);
+        $settings=$this->settings->all();
+        return escapeshellarg($settings['ffmpeg_path']).' -hide_banner -loglevel '.escapeshellarg(config('ffmpeg.loglevel')).' -re -stream_loop -1 -f concat -safe 0 -i '.escapeshellarg($playlistFile).' -c:v libx264 -preset '.escapeshellarg(config('ffmpeg.preset')).' -b:v '.escapeshellarg($settings['default_bitrate']).' -c:a aac -b:a '.escapeshellarg(config('ffmpeg.audio_bitrate')).' -f flv '.escapeshellarg($channel['rtmp_url'].'/'.$channel['stream_key']);
     }
 }

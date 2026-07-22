@@ -8,9 +8,9 @@ A lightweight PHP 8.3/MySQL dashboard and independent FFmpeg worker for one loop
 2. Copy `.env.example` to `.env`, set a long `APP_KEY`, then run `composer install --no-dev --optimize-autoloader`.
 3. Create the MySQL database/user and apply `mysql -u broadcaster -p broadcaster < database/migrations/001_initial.sql`.
 4. Create writable `uploads`, `logs`, and `cache` directories for `www-data` (not web accessible), then run `php bin/create-admin admin@example.com 'long-password'`.
-5. Install `deploy/nginx.conf`, validate Nginx, copy the service/timer units, and enable with `systemctl enable --now youtube-broadcaster-worker.timer`.
+5. Install `deploy/nginx.conf`, validate Nginx, copy the worker and import service/timer units, and enable them with `systemctl enable --now youtube-broadcaster-worker.timer youtube-broadcaster-import.timer`.
 
-The timer invokes a short-lived worker every five seconds. FFmpeg remains owned by that worker after a stream starts, keeping PHP-FPM and the dashboard independent.
+The stream timer invokes a worker every five seconds. FFmpeg remains owned by that worker after a stream starts, keeping PHP-FPM and the dashboard independent. The import timer independently processes one queued yt-dlp import every ten seconds.
 
 ## Operational notes
 
