@@ -37,8 +37,8 @@ final class StreamManager
             while (proc_get_status($process)['running']) {
                 sleep((int) config('stream.poll_seconds'));
                 $fresh = $this->streams->find((int) $stream['id']);
-                if (($fresh['stop_requested'] ?? false) || ($fresh['scheduled_end'] && strtotime($fresh['scheduled_end']) <= time())) {
-                    $stopped = true;
+                if (($fresh['stop_requested'] ?? false) || ($fresh['scheduled_end'] && strtotime($fresh['scheduled_end']) <= time()) || ($fresh['restart_requested'] ?? false)) {
+                    $stopped = !($fresh['restart_requested'] ?? false);
                     proc_terminate($process, 15);
                     break;
                 }
@@ -47,6 +47,11 @@ final class StreamManager
             if ($stopped) {
                 $this->streams->update((int) $stream['id'], ['status' => StreamStatus::STOPPED, 'stopped_at' => gmdate('Y-m-d H:i:s'), 'pid' => null]);
                 break;
+            }
+            if (($this->streams->find((int)$stream['id'])['restart_requested'] ?? false)) {
+                $this->streams->update((int)$stream['id'], ['restart_requested'=>0]);
+                $attempt = 0;
+                continue;
             }
             $attempt++;
             $this->log->error('FFmpeg exited', ['stream_id' => $stream['id'], 'code' => $exitCode, 'attempt' => $attempt]);
