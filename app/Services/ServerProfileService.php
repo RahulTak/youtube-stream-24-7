@@ -1,0 +1,3 @@
+<?php declare(strict_types=1);
+namespace App\Services;
+final class ServerProfileService { public function __construct(private SystemMetricsService $metrics){} public function profile():array{$m=$this->metrics->collect();$cores=(int)trim((string)shell_exec('nproc'));$architecture=php_uname('m');$ram=$m['memory_total'];$name=$cores<=1||$ram<=1073741824?'micro':($cores<=2?'standard':($cores<=4?'high':'ultra'));return ['name'=>$name,'cpu_cores'=>$cores,'architecture'=>$architecture,'ram_bytes'=>$ram,'swap_bytes'=>$m['swap_total'],'load'=>$m['load'][0]??0,'cpu_steal_percent'=>$m['cpu_steal_percent'],'virtualization'=>trim((string)shell_exec('systemd-detect-virt 2>/dev/null'))?:'unknown'];} }

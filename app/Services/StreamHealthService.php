@@ -1,0 +1,3 @@
+<?php declare(strict_types=1);
+namespace App\Services;
+final class StreamHealthService { public function score(array $system,array $stream):array{$score=100;$warnings=[];if(($system['cpu_steal_percent']??0)>=config('health.cpu_steal_warning_percent')){$score-=40;$warnings[]='Host CPU Contention Detected';}if(($stream['encoding_speed']??1)>=0&&($stream['encoding_speed']??1)<config('health.encoding_speed_warning')){$score-=30;$warnings[]='Encoding slower than realtime';}if(($stream['connected']??false)===false){$score-=30;$warnings[]='Stream connection unavailable';}$status=$score>=config('health.health.healthy')?'healthy':($score>=config('health.health.warning')?'warning':'critical');return ['score'=>max(0,$score),'status'=>$status,'warnings'=>$warnings];} }
