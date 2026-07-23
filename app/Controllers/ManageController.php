@@ -7,9 +7,12 @@ final class ManageController extends Controller {
     public function createChannel(): never { $this->channels->create($_POST); redirect('/channels'); }
     public function updateChannel(): never { $this->channels->update((int)$_POST['channel_id'],$_POST); redirect('/channels'); }
     public function deleteChannel(): never { $this->channels->delete((int)$_POST['channel_id']); redirect('/channels'); }
+    public function toggleChannel(): never { $this->channels->toggle((int)$_POST['channel_id']); redirect('/channels'); }
+    public function duplicateChannel(): never { $this->channels->duplicate((int)$_POST['channel_id']); redirect('/channels'); }
     public function videos(): never { $this->view('videos',['videos'=>$this->videos->all(),'imports'=>$this->imports->recent()]); }
     public function upload(): never { $this->videos->upload($_FILES['video']??[]); redirect('/videos'); }
     public function deleteVideo(): never { $this->videos->delete((int)$_POST['video_id']); redirect('/videos'); }
+    public function renameVideo(): never { $this->videos->rename((int)$_POST['video_id'],$this->input('title')); redirect('/videos'); }
     public function import(): never { $this->imports->queue($this->input('url')); redirect('/videos'); }
     public function playlists(): never { $playlists=$this->playlists->all();$playlistVideos=[];foreach($playlists as $playlist)$playlistVideos[$playlist['id']]=$this->playlists->videos((int)$playlist['id']);$this->view('playlists',['playlists'=>$playlists,'videos'=>$this->videos->all(),'playlistVideos'=>$playlistVideos]); }
     public function createPlaylist(): never { $this->playlists->create($this->input('name'),$this->input('description')); redirect('/playlists'); }
