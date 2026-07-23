@@ -1,0 +1,3 @@
+<?php declare(strict_types=1);
+namespace App\Services;
+final class StreamDiagnosticsService { public function record(int $streamId,array $metadata,array $profile,array $settings):void{$dir=config('settings.cache_directory');if(!is_dir($dir))mkdir($dir,0750,true);file_put_contents($dir.'/stream-'.$streamId.'-diagnostics.json',json_encode(['detected_metadata'=>$metadata,'selected_profile'=>$profile,'applied_ffmpeg_settings'=>$settings,'recorded_at'=>gmdate('c')],JSON_PRETTY_PRINT|JSON_UNESCAPED_SLASHES),LOCK_EX);} public function read(?array $stream):?array{if(!$stream)return null;$file=config('settings.cache_directory').'/stream-'.$stream['id'].'-diagnostics.json';return is_file($file)?json_decode((string)file_get_contents($file),true):null;} }
