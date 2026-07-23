@@ -12,7 +12,7 @@ CREATE TABLE import_jobs (
 ) ENGINE=InnoDB;
 
 INSERT INTO settings (`key`, `value`) VALUES
-('ffmpeg_path', '/usr/bin/ffmpeg'), ('ytdlp_path', '/usr/local/bin/yt-dlp'),
+('ffmpeg_path', '/usr/bin/ffmpeg'), ('ytdlp_path', '/usr/bin/yt-dlp'),
 ('default_resolution', '1280x720'), ('default_bitrate', '2500k'),
 ('auto_restart', '1'), ('timezone', 'UTC'), ('theme', 'light')
 ON DUPLICATE KEY UPDATE `value` = VALUES(`value`);
